@@ -122,7 +122,7 @@ class Parser:
             "No EECS header line"
 
         header = Block("header")
-        header.push(Block("h1", "MASSACHUSVSETTS INSTITVTE OF TECHNOLOGY"))
+        header.push(Block("h1", "MASSACHVSETTS INSTITVTE OF TECHNOLOGY"))
         header.push(Block("h2", "Department of Electrical Engineering and Computer Science"))
 
         assert not l4 or l4.isspace(), "Fourth line is not empty"
