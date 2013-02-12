@@ -3,6 +3,21 @@
 
 import re
 import sys
+import functools
+
+class Debug:
+    def __init__(self):
+        self.tags = set()
+
+    def __call__(self, *args, end="\n", sep=" ", tag=None):
+        if not tag or tag in self.tags:
+            print("[{}]".format(tag or "!"), *args,
+                  end=end, sep=sep, file=sys.stderr)
+
+    def __getattr__(self, attr):
+        return functools.partial(self, tag=attr)
+
+debug = Debug()
 
 class Block(list):
     def __init__(self, tag, body="", **kwargs):
@@ -73,13 +88,15 @@ class Parser:
         if not line:
             return False
 
-        print(line, file=sys.stderr, end="")
+        debug.input(line, end="")
         for linetype in self.precedence:
             rec_fn = getattr(self, "rec_" + linetype)
             do_fn = getattr(self, "do_" + linetype)
             if rec_fn(line, self.doc, self.block):
-                print(" -> {}".format(linetype), self.doc, self.block, self.block.tag, hasattr(self.block, "closed"), file=sys.stderr)
+                debug.rec(linetype, "::", self.block.tag,
+                          hasattr(self.block, "closed"), end="")
                 self.block = do_fn(line, self.doc, self.block)
+                debug.rec("->", self.block.tag, hasattr(self.block, "closed"))
                 if not (isinstance(self.block, Block) or
                         isinstance(self.block, Document)): raise TypeError("do_" + linetype + " returned " + repr(self.block))
                 return True
@@ -182,7 +199,7 @@ class Parser:
 
     def do_pset(self, line, document, block):
         pset = block.has_parent("pset")
-        print("Are we starting or ending a pset?", pset is False, file=sys.stderr)
+        debug.rec("[{}]".format("starting" if pset is False else "ending"))
 
         if pset is False: # Starting a new pset block
             pset = Block("pset")
@@ -257,7 +274,7 @@ def not_really_escape(s):
     
 def to_html_block(block):
     tag, body, attrs = block.to_html()
-    print(tag, attrs, file=sys.stderr)
+    debug.out(tag, attrs)
     open_tag = "<{}".format(tag)
     for attr, value in attrs.items():
         open_tag += " "
@@ -278,5 +295,13 @@ def to_html_block(block):
     print("</{}>".format(tag))
     
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--debug", help="Turn on debugging",
+                        default=[],
+                        type=functools.partial(str.split, sep=","))
+    args = parser.parse_args()
+    debug.tags.update(args.debug)
+
     parser = Parser(sys.stdin.readline)
     to_html(parser.parse())
