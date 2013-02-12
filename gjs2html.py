@@ -73,7 +73,7 @@ def count_prefix(line, char):
         if lchar != char:
             return i
     return len(line)
-    
+
 class Parser:
     precedence = ["heading", "code", "pset", "pset_heading", "note", "ws", "text"]
 
@@ -108,7 +108,7 @@ class Parser:
             header += self.nextline()
 
         self.do_header(header)
-        
+
         while self.parseline(): pass
         return self.doc
 
@@ -146,13 +146,13 @@ class Parser:
 
         self.doc.push(header)
         self.block = header
-    
+
     def rec_heading(self, line, document, block):
         return any(i.isupper() for i in line) \
             and all(i.isalnum() or i.isspace() for i in line) \
             and not "(" in line \
             and (line.startswith("\t"*2) or line.startswith(" " * 10))
-    
+
     def do_heading(self, line, document, block):
         head = Block("h1", line.strip())
         document.push(head)
@@ -228,8 +228,8 @@ class Parser:
 
     def do_ws(self, line, document, block):
         pset = block.has_parent("pset")
-        
         if pset is not False:
+
             if len(pset):
                 block = pset[-1]
                 block.closed = True
@@ -271,8 +271,8 @@ def not_really_escape(s):
     # Prof. Sussman isn't expected to be malicious
     return s.replace("&", "&amp;").replace("<", "&lt;") \
         .replace(">", "&gt;").replace("\"", "&quot;")
-    
 def to_html_block(block):
+
     tag, body, attrs = block.to_html()
     debug.out(tag, attrs)
     open_tag = "<{}".format(tag)
@@ -293,7 +293,7 @@ def to_html_block(block):
         to_html_block(child)
 
     print("</{}>".format(tag))
-    
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
