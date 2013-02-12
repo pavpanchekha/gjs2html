@@ -75,7 +75,7 @@ def count_prefix(line, char):
     return len(line)
 
 class Parser:
-    precedence = ["heading", "code", "pset", "pset_heading", "note", "ws", "text"]
+    precedence = ["heading", "code", "pset", "pset_heading", "note", "ws", "code_list", "text"]
 
     def __init__(self, nextline):
         self.nextline = nextline
@@ -243,6 +243,20 @@ class Parser:
             block.closed = True
             return block
 
+    def rec_code_list(self, line, document, block):
+        return (hasattr(block, "closed") or block.tag == "pre") \
+            and line.startswith("Code: ")
+
+    def do_code_list(self, line, document, block):
+        code_files = [fname.strip() for fname in line[len("Code: "):].split(",")]
+        p = Block("p", "<strong>Code</strong>: ")
+        p.body += ", ".join("<code>{}</code>".format(fname)
+                                for fname in code_files)
+        block.parent.push(p)
+        p.closed = True
+        p.unsafe = True
+        return p
+
     def rec_text(self, line, document, block):
         return True
 
@@ -291,7 +305,10 @@ def to_html_block(block, fd):
             open_tag += "\""
     open_tag += ">"
     print(open_tag, end="")
-    print(not_really_escape(body), end="")
+    if hasattr(block, "unsafe"):
+        print(body, end="")
+    else:
+        print(not_really_escape(body), end="")
 
     for child in block:
         to_html_block(child, fd)
