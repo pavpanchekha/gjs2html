@@ -232,8 +232,8 @@ class Parser:
 
     def do_ws(self, line, document, block):
         pset = block.has_parent("pset")
-        if pset is not False:
 
+        if pset is not False and not hasattr(pset, "closed"):
             if len(pset):
                 block = pset[-1]
                 block.closed = True
