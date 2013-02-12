@@ -4,13 +4,16 @@ body {
 }
 
 p {
-    margin: .5em 0;
-    text-indent: 1em;
+    margin: .75em 0;
+    text-align: justify;
 }
 
 pre, code {
-    padding: .25em 5em;
     color: #008;
+}
+
+pre {
+    padding: .25em 5%;
 }
 
 aside.note {
@@ -22,11 +25,11 @@ aside.note {
 }
 
 aside.note:before {
-    content: "!";
+    content: ",";
     font-size: 500%;
     position: absolute;
-    top: 0em;
-    left: .1em;
+    top: -.5em;
+    left: .2em;
     color: #888;
 }
 
@@ -34,7 +37,7 @@ section.pset {
     margin: 1em;
     background: #efe;
     border: 2px solid #8c8;
-    padding: .25em .25em .25em 3em;
+    padding: .25em 2em .25em 3em;
     position: relative;
 }
 
@@ -43,7 +46,7 @@ section.pset h1 {
     font-size: 110%;
     font-weight: normal;
     font-style: italic;
-    margin: 0 0 0 .5em;
+    margin: .5em 0 0 0;
 }
 
 section.pset:before {
@@ -51,7 +54,7 @@ section.pset:before {
     font-size: 500%;
     position: absolute;
     top: 0em;
-    left: .05em;
+    left: .1em;
     color: #8c8;
 }
 
