@@ -1,0 +1,106 @@
+body {
+    max-width: 800px;
+    margin: auto;
+}
+
+p {
+    margin: .5em 0;
+    text-indent: 1em;
+}
+
+pre, code {
+    padding: .25em 5em;
+    color: #008;
+}
+
+aside.note {
+    margin: 1em;
+    background: #eee;
+    border: 2px solid #888;
+    padding: .25em .25em .25em 3em;
+    position: relative;
+}
+
+aside.note:before {
+    content: "!";
+    font-size: 500%;
+    position: absolute;
+    top: 0em;
+    left: .1em;
+    color: #888;
+}
+
+section.pset {
+    margin: 1em;
+    background: #efe;
+    border: 2px solid #8c8;
+    padding: .25em .25em .25em 3em;
+    position: relative;
+}
+
+section.pset h1 {
+    text-align: left;
+    font-size: 110%;
+    font-weight: normal;
+    font-style: italic;
+    margin: 0 0 0 .5em;
+}
+
+section.pset:before {
+    content: "?";
+    font-size: 500%;
+    position: absolute;
+    top: 0em;
+    left: .05em;
+    color: #8c8;
+}
+
+h1 {
+    text-align: center;
+    font-size: 130%;
+}
+
+header {
+    position: relative;
+}
+
+header h1 {
+    font-size: 140%;
+    text-align: center;
+    margin: 1em 0 0 0;
+}
+
+header h2 {
+    font-size: 120%;
+    text-align: center;
+    margin: 0 0 1em 0;
+}
+
+header h3 {
+    text-align: center;
+    font-size: 120%;
+    margin: 0;
+}
+
+header time {
+    display: block;
+    font-weight: bold;
+}
+
+header time.issued {
+    float: left;
+    clear: left;
+}
+
+header time.due {
+    float: right;
+    clear: right;
+}
+
+header time.issued:before {content: "Issued: ";}
+header time.due:before {content: "Due: ";}
+
+header hr {
+    clear: both;
+    margin: 2em 0 3em 0;
+}
