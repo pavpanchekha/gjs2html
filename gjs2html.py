@@ -269,6 +269,27 @@ class Parser:
             block.body += line
             return block
 
+#---------- find_urls.py----------#
+# Functions to identify and extract URLs and email addresses
+# From http://stackoverflow.com/questions/1071191/detect-urls-in-a-string-and-wrap-with-a-href-tag
+def fix_urls(text):
+    pat_url = re.compile(  r'''
+                     (?x)( # verbose identify URLs within text
+         (http|ftp|gopher) # make sure we find a resource type
+                       :// # ...needs to be followed by colon-slash-slash
+            (\w+[:.]?){2,} # at least two domain groups, e.g. (gnosis.)(cx)
+                      (/?| # could be just the domain name (maybe w/ slash)
+                [^ \n\r"]+ # or stuff then space, newline, tab, quote
+                    [\w/]) # resource name ends in alphanumeric or slash
+   (?=(?:[\s\.,>)'"\]]|$)) # assert: followed by white or clause ending
+                         ) # end of match group
+                           ''')
+
+    for url in re.findall(pat_url, text):
+       text = text.replace(url[0], '<a href="%(url)s">%(url)s</a>' % {"url" : url[0]})
+
+    return text
+
 def to_html(document, fd):
     print("<!doctype html>")
     print("<html lang='en_US'>")
@@ -308,7 +329,7 @@ def to_html_block(block, fd):
     if hasattr(block, "unsafe"):
         print(body, end="")
     else:
-        print(not_really_escape(body), end="")
+        print(fix_urls(not_really_escape(body)), end="")
 
     for child in block:
         to_html_block(child, fd)
