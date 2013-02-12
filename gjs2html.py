@@ -255,7 +255,7 @@ class Parser:
             block.body += line
             return block
 
-def to_html(document):
+def to_html(document, fd):
     print("<!doctype html>")
     print("<html lang='en_US'>")
     print("<head><title>{}</title>".format(document.title))
@@ -265,7 +265,7 @@ def to_html(document):
     print("")
 
     for child in document:
-        to_html_block(child)
+        to_html_block(child, fd)
 
     print("")
     print("</body>")
@@ -275,8 +275,8 @@ def not_really_escape(s):
     # Prof. Sussman isn't expected to be malicious
     return s.replace("&", "&amp;").replace("<", "&lt;") \
         .replace(">", "&gt;").replace("\"", "&quot;")
-def to_html_block(block):
 
+def to_html_block(block, fd):
     tag, body, attrs = block.to_html()
     debug.out(tag, attrs)
     open_tag = "<{}".format(tag)
@@ -294,7 +294,7 @@ def to_html_block(block):
     print(not_really_escape(body), end="")
 
     for child in block:
-        to_html_block(child)
+        to_html_block(child, fd)
 
     print("</{}>".format(tag))
 
@@ -308,4 +308,4 @@ if __name__ == "__main__":
     debug.tags.update(args.debug)
 
     parser = Parser(sys.stdin.readline)
-    to_html(parser.parse())
+    to_html(parser.parse(), sys.stdout)
