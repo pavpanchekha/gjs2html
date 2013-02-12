@@ -114,6 +114,9 @@ class Parser:
 
     def do_header(self, head):
         lines = head.split("\n")[:-1]
+        if not (lines[0].isspace() or not lines[0]):
+            lines.insert(0, "")
+            lines.pop()
         l1, l2, l3, l4, l5, l6, l7, l8 = lines
 
         assert not l1 or l1.isspace(), "First line is not empty"
@@ -143,6 +146,7 @@ class Parser:
         header.push(Block("time", issued, _class="issued"))
         header.push(Block("time", due, _class="due"))
         header.push(Block("hr"))
+        header.closed = True
 
         self.doc.push(header)
         self.block = header
@@ -205,7 +209,7 @@ class Parser:
             pset = Block("pset")
             document.push(pset)
             return pset
-        else: # Ending a new pset
+        else: # Ending an existing pset
             pset.closed = True
             return pset
 
