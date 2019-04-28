@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang='en_US'>
+<head><title>Problem Set 2</title>
+<link rel='stylesheet' href='../gjs.css' />
+</head>
+<body>
+
+<header><h1>MASSACHVSETTS INSTITVTE OF TECHNOLOGY</h1>
+<h2>Department of Electrical Engineering and Computer Science</h2>
+<h3 class="when">6.945 Spring 2013</h3>
+<h3 class="pset">Problem Set 2</h3>
+<time class="issued">Wed. 13 Feb. 2013</time>
+<time class="due">Wed. 20 Feb. 2013</time>
+<hr></hr>
+</header>
+<p>Reading:
+    SICP sections 2.4 and 2.5
+         (Tagged data, Data-directed programming, Generic Operations)
+    If you are really interested in generic dispatch see the paper
+      by Ernst, et al.  Do not obsess over the formal semantics, what 
+      is really interesting here is the way predicate dispatch can be
+      used to subsume other kinds of dispatch.
+      <a href="http://pag.csail.mit.edu/~mernst/pubs/dispatching-ecoop98-abstract.html">http://pag.csail.mit.edu/~mernst/pubs/dispatching-ecoop98-abstract.html</a>
+</p>
+<p><strong>Code</strong>: <code>ghelper.scm</code>, <code>generic-specs.scm</code>, <code>generic-sequences.scm</code>, <code>load.scm</code></p>
+<p>Documentation:
+      The MIT/GNU Scheme documentation
+         online at <a href="http://www.gnu.org/software/mit-scheme/">http://www.gnu.org/software/mit-scheme/</a>
+</p>
+<h1>Generic Operations</h1>
+<p>In this problem set we will explore a variety of methods we can use for
+implementing and exploiting generic operations.
+</p>
+<p>The procedures in the file ghelper.scm are an elegant mechanism for
+implementing generic-operator dispatch, where the handlers for the
+generic operators are specified by the predicates that the arguments
+satisfy.  The file generic-specs.scm is an informal programmer's
+specification of generic operations that can be defined over a variety
+of ordered linear data structures, such as lists, vectors, and
+strings.  The file generic-sequences.scm is a beginning implementation
+of the generic operators specified in generic-specs.scm.
+</p>
+<p>To load ghelper and generic-sequences incant (load &quot;load&quot;) after 
+(cd &quot;your code directory&quot;) at a Scheme read-eval-print loop.
+</p>
+<section class="pset"><h1>Problem 2.1:</h1>
+<p>Complete the implementation started in generic-sequences.scm to match
+the specifications in generic-specs.scm.  Demonstrate that each of
+your generic operators  works as specified, by showing examples.  You
+should insert your tests as comments in the code you hand in.
+</p>
+<p>Notice that the types in the underlying Scheme are not uniformly
+specified, so this is not entirely trivial: in our seed file, for
+example, we had to define vector-null?, list-set!, and vector-append
+just to fill things out a bit.
+</p>
+</section>
+<p>Operations like sequence:append can be extended to allow the
+combination of unlike sequences.  For example, we might expect to be
+able to write 
+</p>
+<pre data-lang="scheme">(sequence:append (list 'a 'b 'c) (vector 'd 'e 'f))</pre>
+<p>and get back the list (a b c d e f), assuming that we want a sequence
+of the first argument type to be the sequence type of the result.
+</p>
+<p>One way to implement this sort of thing is to write specific handlers
+for all the combinations of types we might want.  This may be a large
+problem.  However, the problem can be mitigated by using coercions,
+such as vector-&gt;list, list-&gt;vector, etc.  The cost of doing the
+coercions is the construction of a new intermediate data structure
+that is not needed in the result.  This may or may not be important,
+depending on the application.  With coercions, we make up and use new
+combinators to help construct the generic operator entries:
+</p>
+<pre data-lang="scheme">(define (compose-1st-arg f g)
+  (lambda (x y) (f (g x) y)))
+
+(define (compose-2nd-arg f g)
+  (lambda (x y) (f x (g y))))</pre>
+<p>Using these we can write such things as:
+</p>
+<pre data-lang="scheme">(defhandler generic:binary-append
+  (compose-2nd-arg vector-append list-&gt;vector)
+  vector? list?)
+
+(defhandler generic:binary-append
+  (compose-2nd-arg append vector-&gt;list)
+  list? vector?)</pre>
+<section class="pset"><h1>Problem 2.2:</h1>
+<p>Examine the generic specifications.  What generalizations that mix
+combinations of sequence types may be useful?  Amend the specification
+document so as to include the generalization.  (Turn in the amended
+specification sheet with your changes clearly indicated.)  Amend your
+implementation to make these generalizations.
+</p>
+<p>Some of the coercions that you may need are provided by Scheme, but
+others may need to be written, such as vector-&gt;string.  (Consult the
+online MIT/GNU Scheme reference manual to see what is and is not
+provided.)
+</p>
+</section>
+<p>The generic procedure sequence:append also illustrates the problem
+that we must arbitrarily select the type of the output value for each
+generic procedure.  However, the type required may be different
+depending upon the way that value will be used.  For example, 
+complex numbers are best expressed in polar form if we intend to
+multiply them, whereas they are best expressed in rectangular form if
+we intend to add them.  Automagically knowing the right form is itself
+an interesting and complicated problem (that we may address later in
+this subject) but it may be useful, as an intermediate solution, to
+allow the user to specify the desired output type for each call site.
+This provides an advantage over explicit after-the-fact coercion of
+the output by the user, because it gives the dispatch mechanism the
+ability to select what may be the best way to accomplish the desired
+result.  For example, it may be much more expensive to develop the
+answer the wrong format than to develop it in the desired format.
+</p>
+<p>A user might specify the type of the result of the sequence:append
+operation by giving an (optional) first argument that is a type
+predicate as follows:
+</p>
+<p>If a vector is desired the user could specify
+</p>
+<p>  (sequence:append vector? (list 'a 'b 'c) (vector 'd 'e 'f))
+</p>
+<p>if a list is desired the user could specify
+</p>
+<p>  (sequence:append list? (list 'a 'b 'c) (vector 'd 'e 'f))
+</p>
+<p>the system default is specified by omitting the type predicate
+</p>
+<p>  (sequence:append (list 'a 'b 'c) (vector 'd 'e 'f))
+</p>
+<section class="pset"><h1>Problem 2.3</h1>
+<p>Is this a good idea?  (Please state and argue your opinion.)
+Are there disadvantages to this syntactic scheme?  Do you have a
+better idea?
+</p>
+<p>What changes would you have to make in the ghelper.scm file to
+implement some form of target selection (either the suggestion above
+or your better idea)?  For example, how would make-generic-operator
+have to change?  defhandler?  Implement your changes and test
+them.
+</p>
+</section>
+<p>The code for sequence:append illustrates another interesting problem.
+Our generic dispatch program does not allow us to make generic
+operations with unspecified arity -- that take many arguments -- such
+as addition.  We programmed around that restriction by defining a
+binary generic operation and then using a folding reduction
+(fold-right) to extend the binary operation to take an arbitrary
+number of arguments.  However, the folding reduction needs to know the
+null sequence of the type being constructed.  Alternatively, we could
+have extended the generic dispatch to allow creation of procedures
+with unspecified arity.  This would allow us to move the folding to
+the type-specific procedures rather than make it a wrapper around the
+binary generic procedure.
+</p>
+<section class="pset"><h1>Problem 2.4</h1>
+<p>Is this a good idea?  (Please state and argue your opinion.)
+How does this interact with Problem 2.3 above?
+</p>
+<p>Assuming that we want to do this, what changes would you have to make
+in the ghelper.scm file?  For example, how would make-generic-operator
+have to change?  defhandler?  We do not want you to actually
+implement these changes, just think about what would have to be done
+and informally describe your conclusions.  
+</p>
+</section>
+<p>Ben Bitdiddle is pleased with our generic sequences but notes that,
+beyond generic N-tuples, it is useful also to have generic sets.  He
+proposes that we further extend our language with:
+</p>
+<p>  (generic:sequence-&gt;set &lt;sequence&gt;)
+    Returns a list corresponding to &lt;sequence&gt; with no duplicates.
+    Duplication is determined using EQUAL? (not EQ? nor EQV?).
+</p>
+<p>  The remaining traditional set operations are straightforward:
+</p>
+<p>  (set:equal?         &lt;set-1&gt; &lt;set-2&gt;)
+  (set:union          &lt;set-1&gt; &lt;set-2&gt;)
+  (set:intersection   &lt;set-1&gt; &lt;set-2&gt;)
+  (set:difference     &lt;set-1&gt; &lt;set-2&gt;) - E.g. {A,B,C}-{9,B,D}={A,C}
+  (set:strict-subset? &lt;set-1&gt; &lt;set-2&gt;)
+</p>
+<p>Alyssa P. Hacker is quick to point out that an efficient way to
+implement sets is as sorted, irredundant lists.  She adds, ``Of
+course, this would require a generic:less? predicate to induce a total
+order on the potential set elements.''
+</p>
+<p>To that end, Alyssa proposes the following ordering on types of objects:
+</p>
+<pre data-lang="scheme">null &lt; Boolean &lt; char &lt; number &lt; symbol &lt; string &lt; vector &lt; list</pre>
+<p>She notes that MIT Scheme already provides handy implementations of
+each of:  char&lt;?, &lt;, symbol&lt;? and string&lt;?.  Adding that null&lt;? and
+boolean&lt;? are straightforward to define and that vector&lt;? can just
+cheat and resort to list&lt;? (for now), she cautions that list&lt;?, on the
+other hand, must take special care to ensure that:
+</p>
+<pre data-lang="scheme">(generic:less? x y)  implies  (not (generic:less? y x))</pre>
+<p>...in order to be well defined (and, thus, well behaved), although
+list&lt;? can, of course, leverage generic:less? in any recursive
+subexpression predications.
+</p>
+<p>Louis Reasoner, ignoring this advice, proposes the following
+implementation of list&lt;?:
+</p>
+<p>(define (list&lt;? list-1 list-2)
+  (let ((len-1 (length list-1)) (len-2 (length list-2)))
+    (cond ((&lt; len-1 len-2) #t)
+          ((&gt; len-1 len-2) #f)
+          ;; Invariant:  equal lengths
+          ((null? list-1) #f)           ; same
+          (else
+           (or (generic:less? (car list-1) (car list-2))
+               (generic:less? (cdr list-1) (cdr list-2)))))))
+</p>
+<p>Alyssa counters that the following is more appropriate:
+</p>
+<p>(define (list&lt;? list-1 list-2)
+  (let ((len-1 (length list-1)) (len-2 (length list-2)))
+    (cond ((&lt; len-1 len-2) #t)
+          ((&gt; len-1 len-2) #f)
+          ;; Invariant:  equal lengths
+          (else
+           (let prefix&lt;? ((list-1 list-1) (list-2 list-2))
+             (cond ((null? list-1) #f)  ; same
+                   ((generic:less? (car list-1) (car list-2)) #t)
+                   ((generic:less? (car list-2) (car list-1)) #f)
+                   (else (prefix&lt;? (cdr list-1) (cdr list-2)))))))))
+</p>
+<p>As a parting shot, Alyssa also advises that entering N^2 items into the
+generic dispatch table can be avoided by just defining generic:less?
+outright, as per:
+</p>
+<p>(define (generic:less? x y)
+  (cond ((null?    x) (if (null?    y) (null&lt;?    x y) #t))
+        ((null?    y) #f)
+        ((boolean? x) (if (boolean? y) (boolean&lt;? x y) #t))
+        ((boolean? y) #f)
+        ...
+        (else (error &quot;Unrecognized data type&quot; x))))
+</p>
+<section class="pset"><h1>Problem 2.5:</h1>
+<p>A. What's wrong with Louis' implementation of the list&lt;? predicate?
+   Give a simple example and a brief explanation of what problems
+   this would cause if it were used in generic:less? to sort sets.
+</p>
+<p>B. Briefly critique Alyssa's suggesting for implementing generic:less?
+   as an explicit case analysis versus using the dispatch table.
+</p>
+<p>C. Implement and demonstrate a generic:less? operation using Alyssa's
+   total ordering of data types (and her list&lt;? code), but using the
+   generic dispatch mechanism instead of an explicit conditional shown
+   above.
+</p>
+</section>
+<p>The system for implementing generic operations that we have looked at
+so far in this problem set is extremely general and flexible: the
+dispatch to a handler is based on arbitrary predicates applied to
+the arguments.  Most generic operation systems are more constrained,
+in that the arguments are presumed to have types that are determined
+either statically by some declaration mechanism or by a type tag that
+is associated with the argument data.  For example, in the SICP
+readings for this problem set, the data is tagged and the dispatch is
+based on these tags.  Such a tagged-data system has important
+advantages of efficiency, but it gives up some flexibility.  
+</p>
+<section class="pset"><h1>Problem 2.6:</h1>
+<p>How much does dispatch on predicates cost?  What is the fundamental
+efficiency problem here?  Imagine that we have a system with tagged
+data, but that we test for the tags with predicates.  What can be done
+with the data tags that can eliminate much of the work of the
+predicate-based system? 
+</p>
+<p>On the other hand, what do we give up in a more conventional system,
+such as the one outlined in SICP, by contrast to the predicate-based
+system?  What is an example of lost flexibility?
+</p>
+<p>Under what circumstances could you build a generic dispatch system
+with zero runtime overhead?  What flexibility would you be giving up?
+What about a system with very little or constant-time overhead?
+</p>
+<p>Write a few clear paragraphs expounding on these ideas.  Try to
+separate accident from essence.  (Some aspects of a system are
+consequences of accidental choices--ones that could easily be
+changed--such as the use of a hash table rather than an association
+list.  Other aspects are essential in that no local modifications can
+significantly change the behavior.)
+</p>
+</section>
+<p>;;;;            Generic sequence operations
+;;;                   generic-specs.scm
+</p>
+<p>;;; There are many kinds of data that can be used to represent sequences: 
+;;;     examples include strings, lists, and vectors.
+</p>
+<p>;;; There are operations that can be defined for all sequence types.
+</p>
+<p>;;;                    Constructing
+;;;
+;;; (sequence:construct &lt;sequence-type&gt; &lt;item-1&gt; ... &lt;item-n&gt;)
+;;;    Constructs a new sequence of the given type and of size n with
+;;;    the given elements: item-1 ... item-n
+</p>
+<p>;;; (sequence:null &lt;sequence-type&gt;)
+;;;    Produces the null sequence of the given type
+</p>
+<p>;;;                     Selecting
+;;;
+;;; (sequence:ref &lt;sequence&gt; &lt;i&gt;)
+;;;    Returns the ith element of the sequence.  We use zero-based
+;;;    indexing, so for a sequence of length n the ith item is
+;;;    referenced by (sequence:ref &lt;sequence&gt; &lt;i-1&gt;).
+</p>
+<p>;;; (sequence:size &lt;sequence&gt;)
+;;;    Returns the number of elements in the sequence.
+</p>
+<p>;;; (sequence:type &lt;sequence&gt;)
+;;;    Returns the predicate defining the type of the sequence given.
+</p>
+<p>;;;                     Testing
+;;;
+;;; (sequence:null? &lt;sequence&gt;)
+;;;    Returns #t if the sequence is null, otherwise returns #f.
+</p>
+<p>;;; (sequence:equal? &lt;sequence-1&gt; &lt;sequence-2&gt;)
+;;;    Returns #t if the sequences are of the same type and have equal
+;;;    elements in the same order, otherwise returns #f.
+</p>
+<p>;;;                     Mutation
+;;;
+;;; Some sequences are immutable, while others can be changed.  
+;;;
+;;; For those that can be modified we can change an element:
+;;;
+;;; (sequence:set! &lt;sequence&gt; &lt;i&gt; &lt;v&gt;) 
+;;;    Sets the ith element of the sequence to v.
+</p>
+<p>;;;                  Cutting and Pasting
+;;;
+;;;  (sequence:subsequence &lt;sequence&gt; &lt;start&gt; &lt;end&gt;)
+;;;    The arguments start and end must be exact integers such that 
+;;;       0 &lt;= start &lt;= end &lt;= (sequence:size &lt;sequence&gt;).
+;;;    Returns a new sequence of the same type as the given sequence,
+;;;    of size end-start with elements selected from the given sequence.
+;;;    The new sequence starts with the element of the given sequence
+;;;    referenced by start.  It ends with the element of the given
+;;;    sequence referenced by end-1.
+</p>
+<p>;;; (sequence:append &lt;sequence-1&gt; ... &lt;sequence-n&gt;)
+;;;    Requires that the sequences are all of the same type.  Returns
+;;;    a new sequence of the type, formed by concatenating the
+;;;    elements of the given sequences.  The size of the new sequence
+;;;    is the sum of the sizes of the given sequences.
+</p>
+<p>;;;                      Iterators
+;;;
+;;; (sequence:generate &lt;sequence-type&gt; &lt;n&gt; &lt;function&gt;)
+;;;    Makes a new sequence of the given sequence type, of size n.
+;;;    The ith element of the new sequence is the value of the 
+;;;    function at the index i.
+</p>
+<p>;;; (sequence:map &lt;function&gt; &lt;seq-1&gt; ... &lt;seq-n&gt;)
+;;;    Requires that the sequences given are of the same size and
+;;;    type, and that the arity of the function is n.  The ith element
+;;;    of the new sequence is the value of the function applied to the
+;;;    n ith elements of the given sequences.
+</p>
+<p>;;; (sequence:for-each &lt;procedure&gt; &lt;seq-1&gt; ... &lt;seq-n&gt;)
+;;;    Requires that the sequences given are of the same size and
+;;;    type, and that the arity of the procedure is n.  Applies the
+;;;    procedure to the n ith elements of the given sequences;
+;;;    discards the value.  This is done for effect.
+</p>
+<p>;;;                 Filtration and Search
+;;;
+;;; (sequence:filter &lt;sequence&gt; &lt;predicate&gt;)
+;;;    Returns a new sequence with exactly those elements of the given
+;;;    sequence for which the predicate is true (does not return #f).
+;;;
+;;; (sequence:get-index &lt;sequence&gt; &lt;predicate&gt;)
+;;;    Returns the index of the first element of the sequence that
+;;;    satisfies the predicate.  Returns #f if no element of the
+;;;    sequence satisfies the predicate.
+;;;
+;;; (sequence:get-element &lt;sequence&gt; &lt;predicate&gt;)
+;;;    Returns the first element of the sequence that satisfies the
+;;;    predicate.  Returns #f if no element of the sequence satisfies
+;;;    the predicate.
+</p>
+<p>;;;                    Accumulation
+;;;
+;;; (sequence:fold-right &lt;function&gt; &lt;initial&gt; &lt;sequence&gt;)
+;;;    Returns the result of applying the given binary function,
+;;;    from the right, starting with the initial value.
+;;;    For example, 
+;;;      (sequence:fold-right list 'end '(a b c))
+;;;           =&gt; (a (b (c end)))
+</p>
+<p>;;;
+;;; (sequence:fold-left &lt;function&gt; &lt;initial&gt; &lt;sequence&gt;)
+;;;    Returns the result of applying the given binary function,
+;;;    starting with the initial value, from the left.
+;;;    For example, 
+;;;      (sequence:fold-left list 'start '(a b c))
+;;;           =&gt; (((start a) b) c)
+</p>
+<p>;;;;    Generic sequence operator definitions
+;;;            generic-sequences.scm
+</p>
+<p>;;; First we declare the operators we want to be generic.
+;;;  Each declaration specifies the arity (number of arguments).
+;;;  It may specify a name and a default operation, if necessary.
+</p>
+<p>(define sequence:null
+  (make-generic-operator 1))
+</p>
+<p>(define sequence:ref
+  (make-generic-operator 2))
+</p>
+<p>(define sequence:size
+  (make-generic-operator 1))
+</p>
+<p>(define sequence:type
+  (make-generic-operator 1))
+</p>
+<p>(define sequence:null?
+  (make-generic-operator 1))
+</p>
+<p>(define sequence:equal?
+  (make-generic-operator 2))
+</p>
+<p>(define sequence:set!
+  (make-generic-operator 3))
+</p>
+<p>(define sequence:subsequence
+  (make-generic-operator 3))
+</p>
+<p>;;; sequence:append takes multiple arguments.  It is defined in terms
+;;; of a binary generic append that takes a sequence and a list of
+;;; sequences.
+</p>
+<p>(define (sequence:append . sequences)
+  (if (null? sequences)
+      (error &quot;Need at least one sequence for append&quot;))
+  (let ((type? (sequence:type (car sequences))))
+    (if (not (for-all? (cdr sequences) type?))
+        (error &quot;All sequences for append must be of the same type&quot;
+               sequences))
+    (fold-right generic:binary-append (sequence:null type?) sequences)))
+</p>
+<p>(define generic:binary-append (make-generic-operator 2))
+</p>
+<p>;;; Implementations of the generic operators.
+</p>
+<p>(define (any? x) #t)
+(define (constant val) (lambda (x) val))
+(define (is-exactly val) (lambda (x) (eq? x val)))
+</p>
+<p>(defhandler sequence:null (constant &quot;&quot;)    (is-exactly string?))
+(defhandler sequence:null (constant '())   (is-exactly list?))
+(defhandler sequence:null (constant #())   (is-exactly vector?))
+</p>
+<p>(defhandler sequence:ref string-ref string? exact-nonnegative-integer?)
+(defhandler sequence:ref list-ref   list?   exact-nonnegative-integer?)
+(defhandler sequence:ref vector-ref vector? exact-nonnegative-integer?)
+</p>
+<p>(defhandler sequence:size string-length     string?)
+(defhandler sequence:size length            list?)
+(defhandler sequence:size vector-length     vector?)
+</p>
+<p>(defhandler sequence:type (constant string?)     string?)
+(defhandler sequence:type (constant list?)       list?)
+(defhandler sequence:type (constant vector?)     vector?)
+</p>
+<p>(define (vector-null? v) (= (vector-length v) 0))
+</p>
+<p>(defhandler sequence:null? string-null?     string?)
+(defhandler sequence:null? null?            list?)
+(defhandler sequence:null? vector-null?     vector?)
+</p>
+<p>;;; To assign to the ith element of a list:
+</p>
+<p>(define (list-set! list i val)
+  (cond ((null? list)
+         (error &quot;List does not have enough elements&quot; i))
+        ((= i 0) (set-car! list val))
+        (else (list-set! (cdr list) (- i 1) val))))
+</p>
+<p>(defhandler sequence:set! string-set!
+                  string? exact-nonnegative-integer? any?)
+(defhandler sequence:set! list-set!
+                  list?   exact-nonnegative-integer? any?)
+(defhandler sequence:set! vector-set!
+                  vector? exact-nonnegative-integer? any?)
+</p>
+<p>(defhandler sequence:subsequence substring
+          string? exact-nonnegative-integer? exact-nonnegative-integer?)
+</p>
+<p>(defhandler sequence:subsequence sublist
+          list? exact-nonnegative-integer?   exact-nonnegative-integer?)
+</p>
+<p>(defhandler sequence:subsequence subvector
+          vector? exact-nonnegative-integer? exact-nonnegative-integer?)
+</p>
+<p>(define (vector-append v1 v2)
+  (let ((n1 (vector-length v1))
+        (n2 (vector-length v2)))
+    (make-initialized-vector (+ n1 n2)
+                             (lambda (i)
+                               (if (&lt; i n1)
+                                   (vector-ref v1 i)
+                                   (vector-ref v2 (- i n1)))))))
+</p>
+<p>(defhandler generic:binary-append string-append  string? string?)
+(defhandler generic:binary-append append         list?   list?)
+(defhandler generic:binary-append vector-append  vector? vector?)
+</p>
+<p>;;;;           Most General Generic-Operator Dispatch
+</p>
+<p>(declare (usual-integrations))
+</p>
+<p>;;; Generic-operator dispatch is implemented here by a discrimination
+;;; list, where the arguments passed to the operator are examined by
+;;; predicates that are supplied at the point of attachment of a
+;;; handler (by DEFHANDLER).
+</p>
+<p>;;; To be the correct branch all arguments must be accepted by
+;;; the branch predicates, so this makes it necessary to
+;;; backtrack to find another branch where the first argument
+;;; is accepted if the second argument is rejected.  Here
+;;; backtracking is implemented by OR.
+</p>
+<p>(define (make-generic-operator arity #!optional name default-operation)
+  (let ((record (make-operator-record arity)))
+    (define (operator . arguments)
+      (if (not (= (length arguments) arity))
+          (error &quot;Wrong number of arguments for generic operator&quot;
+		 (if (default-object? name) operator name)
+		 arity arguments))
+      (apply (or (let per-arg
+                     ((tree (operator-record-tree record))
+                      (args arguments))
+                   (let per-pred ((tree tree))
+                     (and (pair? tree)
+                          (if ((caar tree) (car args))
+                              (if (pair? (cdr args))
+                                  (or (per-arg (cdar tree) (cdr args))
+                                      (per-pred (cdr tree)))
+                                  (cdar tree))
+                              (per-pred (cdr tree))))))
+		 (if (default-object? default-operation)
+		     (lambda args
+		       (error &quot;No applicable methods for generic operator&quot;
+			      (if (default-object? name) operator name)
+			      args))
+		     default-operation))
+             arguments))
+</p>
+<pre data-lang="scheme">(hash-table/put! *generic-operator-table* operator record)
+operator))</pre>
+<p>(define *generic-operator-table*
+  (make-eq-hash-table))
+</p>
+<p>(define (get-operator-record operator)
+  (hash-table/get *generic-operator-table* operator #f))
+</p>
+<p>(define (make-operator-record arity) (cons arity '()))
+(define (operator-record-arity record) (car record))
+(define (operator-record-tree record) (cdr record))
+(define (set-operator-record-tree! record tree) (set-cdr! record tree))
+</p>
+<p>(define (defhandler operator handler . argument-predicates)
+  (let ((record
+         (let ((record (hash-table/get *generic-operator-table* operator #f))
+               (arity (length argument-predicates)))
+           (if record
+               (begin
+                 (if (not (= arity (operator-record-arity record)))
+                     (error &quot;Incorrect operator arity:&quot; operator))
+                 record)
+               (error &quot;Operator not known&quot; operator)))))
+    (set-operator-record-tree! record
+      (bind-in-tree argument-predicates
+		    handler
+		    (operator-record-tree record))))
+  operator)
+</p>
+<p>;;; An alias used in some older code
+(define assign-operation defhandler)
+</p>
+<p>(define (bind-in-tree keys handler tree)
+  (let loop ((keys keys) (tree tree))
+    (let ((p.v (assq (car keys) tree)))
+      (if (pair? (cdr keys))
+          (if p.v
+              (begin
+                (set-cdr! p.v
+                          (loop (cdr keys) (cdr p.v)))
+                tree)
+              (cons (cons (car keys)
+                          (loop (cdr keys) '()))
+                    tree))
+          (if p.v
+              (begin
+                (warn &quot;Replacing a handler:&quot; (cdr p.v) handler)
+                (set-cdr! p.v handler)
+                tree)
+              (cons (cons (car keys) handler)
+                    tree))))))
+</p>
+<p>#|
+;;; Demonstration of handler tree structure.
+;;; Note: symbols were used instead of procedures
+</p>
+<p>(define foo (make-generic-operator 3 'foo))
+;Value: foo
+</p>
+<p>(pp (get-operator-record foo))
+(3)
+</p>
+<p>(defhandler foo 'abc 'a 'b 'c)
+</p>
+<p>(pp (get-operator-record foo))
+(3 (a (b (c . abc))))
+</p>
+<p>(defhandler foo 'abd 'a 'b 'd)
+</p>
+<p>(pp (get-operator-record foo))
+(3 (a (b (d . abd) (c . abc))))
+</p>
+<p>(defhandler foo 'aec 'a 'e 'c)
+</p>
+<p>(pp (get-operator-record foo))
+(3 (a (e (c . aec))
+      (b (d . abd)
+	 (c . abc))))
+</p>
+<p>(defhandler foo 'dbd 'd 'b 'd)
+</p>
+<p>(pp (get-operator-record foo))
+(3 (d (b (d . dbd)))
+   (a (e (c . aec))
+      (b (d . abd)
+	 (c . abc))))
+|#
+</p>
+
+</body>
+</html>
